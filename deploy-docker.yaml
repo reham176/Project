@@ -1,0 +1,70 @@
+---
+
+- name: install and start docker and docker-compose
+  hosts: docker_server 
+  become: yes
+  tasks:
+    - name: install docker
+      yum:
+        name: docker 
+        update_cache: yes
+        state: present
+    - name: start docker
+      systemd: 
+        name: docker
+        state: started 
+    - name: add ec2-user to docker group
+      user:       
+        name: ec2-user
+        groups: docker
+        append: yes
+    - name: reconnect to the server session
+      meta: reset_connection
+    - name: install docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: +x 
+
+- name: install aws-cli on ec2
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: install aws-cli
+      yum:
+        name: aws-cli
+        update_cache: yes
+        state: present
+
+- name: Make sure the utility-app copied to the EC2 instance
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: copy utility-app
+      copy:
+        src: ./utility-app
+        dest: /home/ec2-user
+
+- name: copy the docker-compose file
+  hosts: docker_server
+  tasks:
+    - name: copy the docker-compose file
+      copy:
+        src: ./docker-compose.yaml
+        dest: /home/ec2-user
+
+- name: docker compose up
+  hosts: docker_server 
+  become: yes
+  tasks:
+    - name: deploy app by docker-compose up
+      become: yes 
+      command: docker-compose -f /home/ec2-user/docker-compose.yaml up -d
+
+
+
+
+
+      
+
+
